@@ -1,0 +1,133 @@
+package com.crazypig.httpserver.simple;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.LineNumberReader;
+import java.nio.charset.Charset;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+public class HttpRequest {
+	
+	private static final String DEFAULT_CHARSET = "UTF-8";
+	
+	private HttpMethod method;
+	private String uri;
+	private String httpVersion;
+	private Map<String, String> headers;
+	private Map<String, String> params;
+	private String reqeustEntity;
+	
+	private final InputStream in;
+	
+	public HttpRequest(InputStream in) throws IOException {
+		this.in = in;
+		headers = new LinkedHashMap<String, String>();
+		params = new LinkedHashMap<String, String>();
+	}
+	
+	public void parseRequestLineAndHeaders() throws IOException {
+		LineNumberReader reader = new LineNumberReader(new BufferedReader(new InputStreamReader(in, Charset.forName(DEFAULT_CHARSET))));
+		try {
+			String requestLine = reader.readLine();
+			// parse request line
+			String[] parts = requestLine.split("\\s+", 3);
+			method = HttpMethod.valueOf(parts[0]);
+			if(parts[1].contains("?")) {
+				int index = parts[1].indexOf("?");
+				uri = parts[1].substring(0, index);
+				// parse request param
+				parseRequestParams(parts[1].substring(index + 1, parts[1].length()));
+			} else {
+				uri = parts[1];
+			}
+			httpVersion = parts[2];
+			String headerLine = null;
+			while(!(headerLine = reader.readLine()).isEmpty()) {
+				// parse header
+				parts = headerLine.split(":", 2);
+				headers.put(parts[0].trim(), parts[1].trim());
+			}
+		} catch(IOException e) {
+			throw e;
+		}
+	}
+	
+	public boolean isMultiPart() {
+		
+		if(method != HttpMethod.POST) {
+			return false;
+		}
+		
+		String contentType = headers.get("Content-Type");
+		if(contentType != null && contentType.startsWith("multipart/form-data")) {
+			return true;
+		}
+		
+		return false;
+		
+	}
+	
+	private void parseRequestParams(String paramLine) {
+		String[] kvParts = paramLine.split("&");
+		for(String kvPart : kvParts) {
+			String[] kv = kvPart.split("=");
+			params.put(kv[0], kv[1]);
+		}
+	} 
+
+	public HttpMethod getMethod() {
+		return method;
+	}
+
+	public void setMethod(HttpMethod method) {
+		this.method = method;
+	}
+
+	public String getUri() {
+		return uri;
+	}
+
+	public void setUri(String uri) {
+		this.uri = uri;
+	}
+
+	public String getHttpVersion() {
+		return httpVersion;
+	}
+
+	public void setHttpVersion(String httpVersion) {
+		this.httpVersion = httpVersion;
+	}
+
+	public Map<String, String> getHeaders() {
+		return headers;
+	}
+
+	public void setHeaders(Map<String, String> headers) {
+		this.headers = headers;
+	}
+
+	public Map<String, String> getParams() {
+		return params;
+	}
+
+	public void setParams(Map<String, String> params) {
+		this.params = params;
+	}
+
+	public String getReqeustEntity() {
+		return reqeustEntity;
+	}
+
+	public void setReqeustEntity(String reqeustEntity) {
+		this.reqeustEntity = reqeustEntity;
+	}
+
+	public InputStream getIn() {
+		return in;
+	}
+	
+}
