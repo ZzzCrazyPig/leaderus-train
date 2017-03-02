@@ -1,6 +1,5 @@
 package com.crazypig.httpserver.simple;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -18,7 +17,6 @@ public class HttpRequest {
 	private String httpVersion;
 	private Map<String, String> headers;
 	private Map<String, String> params;
-	private String reqeustEntity;
 	
 	private final InputStream in;
 	
@@ -29,27 +27,36 @@ public class HttpRequest {
 	}
 	
 	public void parseRequestLineAndHeaders() throws IOException {
-		LineNumberReader reader = new LineNumberReader(new BufferedReader(new InputStreamReader(in, Charset.forName(DEFAULT_CHARSET))));
+		LineNumberReader reader = new LineNumberReader(new InputStreamReader(in, Charset.forName(DEFAULT_CHARSET)));
 		try {
-			String requestLine = reader.readLine();
-			// parse request line
-			String[] parts = requestLine.split("\\s+", 3);
-			method = HttpMethod.valueOf(parts[0]);
-			if(parts[1].contains("?")) {
-				int index = parts[1].indexOf("?");
-				uri = parts[1].substring(0, index);
-				// parse request param
-				parseRequestParams(parts[1].substring(index + 1, parts[1].length()));
-			} else {
-				uri = parts[1];
+			
+			String line = null;
+			String[] parts = null;
+			while((line = reader.readLine()) != null) {
+				if(reader.getLineNumber() == 1) {
+					// parse request line
+					String requestLine = line;
+					parts = requestLine.split("\\s+", 3);
+					method = HttpMethod.valueOf(parts[0]);
+					if(parts[1].contains("?")) {
+						int index = parts[1].indexOf("?");
+						uri = parts[1].substring(0, index);
+						// parse request param
+						parseRequestParams(parts[1].substring(index + 1, parts[1].length()));
+					} else {
+						uri = parts[1];
+					}
+					httpVersion = parts[2];
+				} else {
+					if(line.isEmpty()) {
+						break;
+					}
+					String headerLine = line;
+					parts = headerLine.split(":", 2);
+					headers.put(parts[0].trim(), parts[1].trim());
+				}
 			}
-			httpVersion = parts[2];
-			String headerLine = null;
-			while(!(headerLine = reader.readLine()).isEmpty()) {
-				// parse header
-				parts = headerLine.split(":", 2);
-				headers.put(parts[0].trim(), parts[1].trim());
-			}
+			
 		} catch(IOException e) {
 			throw e;
 		}
@@ -68,6 +75,27 @@ public class HttpRequest {
 		
 		return false;
 		
+	}
+	
+	public void parseRequestBody() throws IOException {
+		
+		if(method != HttpMethod.POST) {
+			return ;
+		}
+		
+		if(isMultiPart()) {
+			return ;
+		}
+			
+		LineNumberReader reader = new LineNumberReader(new InputStreamReader(in, Charset.forName(DEFAULT_CHARSET)));
+		try {
+		String requestBodyLine = reader.readLine();
+			if(requestBodyLine != null) {
+				parseRequestParams(requestBodyLine);
+			}
+		} catch(IOException e) {
+			throw e;
+		}
 	}
 	
 	private void parseRequestParams(String paramLine) {
@@ -116,14 +144,6 @@ public class HttpRequest {
 
 	public void setParams(Map<String, String> params) {
 		this.params = params;
-	}
-
-	public String getReqeustEntity() {
-		return reqeustEntity;
-	}
-
-	public void setReqeustEntity(String reqeustEntity) {
-		this.reqeustEntity = reqeustEntity;
 	}
 
 	public InputStream getIn() {
