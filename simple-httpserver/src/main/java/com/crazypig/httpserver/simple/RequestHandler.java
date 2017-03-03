@@ -15,21 +15,26 @@ public class RequestHandler implements Runnable {
 	@Override
 	public void run() {
 		
+		HttpResponse response = null;
+		
 		try {
 			InputStream in = socket.getInputStream();
 			HttpRequest request = new HttpRequest(in);
+			response = new HttpResponse(socket.getOutputStream(), request);
 			request.parseRequestLineAndHeaders();
-			if(request.isMultiPart()) {
-				// TODO process file upload
-			} else {
-				request.parseRequestBody();
-				// handle static resource
-				HttpResponse response = new HttpResponse(socket.getOutputStream(), request);
-				response.returnStaticResource();
+			if(request.isEndParseHeader()) {
+				if(request.isMultiPart()) {
+					response.processFileUpload();
+				} else {
+					response.returnStaticResource();
+				}
 			}
 			socket.close();
 		} catch (IOException e) {
 			e.printStackTrace();
+			if(response != null) {
+				response.serverErrorResponse(500, "Server Error", e.getMessage());
+			}
 		}
 		
 	}

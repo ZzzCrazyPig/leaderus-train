@@ -20,6 +20,8 @@ public class HttpRequest {
 	
 	private final InputStream in;
 	
+	private boolean endParseHeader;
+	
 	public HttpRequest(InputStream in) throws IOException {
 		this.in = in;
 		headers = new LinkedHashMap<String, String>();
@@ -29,7 +31,6 @@ public class HttpRequest {
 	public void parseRequestLineAndHeaders() throws IOException {
 		LineNumberReader reader = new LineNumberReader(new InputStreamReader(in, Charset.forName(DEFAULT_CHARSET)));
 		try {
-			
 			String line = null;
 			String[] parts = null;
 			while((line = reader.readLine()) != null) {
@@ -49,6 +50,7 @@ public class HttpRequest {
 					httpVersion = parts[2];
 				} else {
 					if(line.isEmpty()) {
+						endParseHeader = true;
 						break;
 					}
 					String headerLine = line;
@@ -56,8 +58,8 @@ public class HttpRequest {
 					headers.put(parts[0].trim(), parts[1].trim());
 				}
 			}
-			
 		} catch(IOException e) {
+			e.printStackTrace();
 			throw e;
 		}
 	}
@@ -148,6 +150,14 @@ public class HttpRequest {
 
 	public InputStream getIn() {
 		return in;
+	}
+
+	public boolean isEndParseHeader() {
+		return endParseHeader;
+	}
+
+	public void setEndParseHeader(boolean endParseHeader) {
+		this.endParseHeader = endParseHeader;
 	}
 	
 }
