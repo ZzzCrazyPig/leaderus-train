@@ -1,6 +1,8 @@
 package com.crazypig.httpserver.simple;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -8,7 +10,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+
+import com.crazypig.httpserver.utils.ByteUtil;
 
 public class HttpResponse {
 	
@@ -62,53 +69,83 @@ public class HttpResponse {
 		int contentLength = Integer.parseInt(request.getHeaders().get("Content-Length"));
 		String boundary = getBoundary();
 		try {
-//			byte[] buffer = new byte[8192];
+			byte[] buffer = new byte[contentLength];
 //			ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
 			
-//			int offset = 0;
-//			int len = -1;
-//			while((len = in.read(buffer)) > 0) {
-//				bytesOut.write(buffer, 0, len);
-//				offset += len;
-//				if(offset >= contentLength) {
-//					break;
-//				}
-//			}
+			in.read(buffer);
+//			bytesOut.write(buffer);
 			
-			BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-			int offset = 0;
-			FileOutputStream fout = null;
-			while(offset < contentLength) {
+			StringBuffer sb = new StringBuffer();
+			for(byte b : buffer) {
+				sb.append((char) b);
+			}
+			
+			BufferedReader reader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(buffer)));
+			int position = 0;
+			List<String> fileNames = new ArrayList<String>();
+			List<int[]> indexes = new ArrayList<int[]>();
+			int startIndex = -1, endIndex = -1;
+			while(position < contentLength) {
 				
 				String line = reader.readLine();
-				offset += line.length() + 2;
+				position += line.length() + 2;
 				if(line.equals("--" + boundary + "--")) { // end flag
+					if(startIndex != -1) {
+						endIndex = position - line.length() - 2;
+						int[] idx = new int[2];
+						idx[0] = startIndex;
+						idx[1] = endIndex;
+						indexes.add(idx);
+						startIndex = -1;
+					}
 					break ;
 				}
 				if(("--" + boundary).equals(line)) {
-					if(fout != null) {
-						fout.flush();
-						fout.close();
-						fout = null;
+					if(startIndex != -1) {
+						endIndex = position - line.length() - 2;
+						int[] idx = new int[2];
+						idx[0] = startIndex;
+						idx[1] = endIndex;
+						indexes.add(idx);
+						startIndex = -1;
 					}
-				} else if(line.startsWith("Content-Disposition") && line.contains("filename")) {
+					continue;
+				}
+				if(line.startsWith("Content-Disposition") && line.contains("filename")) {
 					int index = line.indexOf("filename=");
 					String fileName = line.substring(index + "filename=".length());
 					fileName = fileName.substring(1, fileName.length() - 1);
-					fout = new FileOutputStream(new File(SimpleHttpServer.WEB_ROOT, UUID.randomUUID().toString()));
+					fileNames.add(fileName);
+					// read content-type line
+					line = reader.readLine();
+					position += line.length() + 2;
+					// read empty line
+					line = reader.readLine();
+					position += line.length() + 2;
+					startIndex = position;
+					continue;
 				}
-				if(fout != null) {
-					fout.write((line + "\r\n").getBytes());
-				}
-				
 			}
 			System.out.println("FileUpload EntityBody: ");
-//			FileOutputStream fout = new FileOutputStream(new File("c:/test.out"));
-//			fout.write(bytesOut.toByteArray());
-//			fout.flush();
-//			fout.close();
+			
+			for(int i = 0, n = fileNames.size(); i < n; i++) {
+				String name = fileNames.get(i);
+				int[] idx = indexes.get(i);
+				int offset = idx[0];
+				int len = idx[1] - idx[0];
+				System.out.println("filename = " + name + ", content = " + new String(buffer, offset, len));
+				
+				FileOutputStream fout = new FileOutputStream(new File(SimpleHttpServer.WEB_ROOT + File.separator + "uploads", name));
+				fout.write(buffer, offset, len);
+				fout.flush();
+				fout.close();
+				
+			}
+			
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			// TODO
 		}
 		System.out.println("end processFileUpload");
 		serverOkResponse("OK");

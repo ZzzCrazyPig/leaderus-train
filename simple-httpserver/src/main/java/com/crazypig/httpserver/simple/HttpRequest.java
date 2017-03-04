@@ -33,7 +33,9 @@ public class HttpRequest {
 		try {
 			String line = null;
 			String[] parts = null;
+			StringBuffer sb = new StringBuffer();
 			while((line = reader.readLine()) != null) {
+				sb.append(line + "\r\n");
 				if(reader.getLineNumber() == 1) {
 					// parse request line
 					String requestLine = line;
@@ -58,6 +60,7 @@ public class HttpRequest {
 					headers.put(parts[0].trim(), parts[1].trim());
 				}
 			}
+			System.out.println(sb.toString());
 		} catch(IOException e) {
 			e.printStackTrace();
 			throw e;
