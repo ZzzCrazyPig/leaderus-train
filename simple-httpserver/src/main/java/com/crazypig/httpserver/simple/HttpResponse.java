@@ -20,8 +20,10 @@ import com.crazypig.httpserver.utils.ByteUtil;
  */
 public class HttpResponse {
 	
+	/** allow max file upload size **/
 	public static final long MAX_UPLOAD_FILES_SIZE = 8 * 1024 * 1024; // 8M
 	
+	/** point to socket outputstream **/
 	private OutputStream out;
 	private HttpRequest request;
 	
@@ -33,7 +35,7 @@ public class HttpResponse {
 	public void returnStaticResource() {
 		String uri = request.getUri();
 		if(uri == null) {
-			serverErrorResponse(404, "File Not Found", "can' not find resouce : " + request.getUri());
+			errorResponse(404, "File Not Found", "can' not find resouce : " + request.getUri());
 			return ;
 		}
 		System.out.println("request static resource : " + uri);
@@ -51,7 +53,7 @@ public class HttpResponse {
 				out.flush();
 			} catch (IOException e) {
 				e.printStackTrace();
-				serverErrorResponse(500, "Server Error", e.getMessage());
+				errorResponse(500, "Server Error", e.getMessage());
 			} finally {
 				if(fin != null) {
 					try {
@@ -62,7 +64,7 @@ public class HttpResponse {
 				}
 			}
 		} else {
-			serverErrorResponse(404, "File Not Found", "can' not find resouce : " + request.getUri());
+			errorResponse(404, "File Not Found", "can' not find resouce : " + request.getUri());
 		}
 	}
 	
@@ -126,7 +128,7 @@ public class HttpResponse {
 			}
 			
 			if(fileTotalSize > MAX_UPLOAD_FILES_SIZE) {
-				serverOkResponse("Files Too Big, Files's total size is larger than max allow size [ " + (MAX_UPLOAD_FILES_SIZE / 1024 / 1024) + " M ]");
+				okResponse("Files Too Big, Files's total size is larger than max allow size [ " + (MAX_UPLOAD_FILES_SIZE / 1024 / 1024) + " M ]");
 				return ;
 			}
 			
@@ -142,11 +144,11 @@ public class HttpResponse {
 				fout.close();
 			}
 			
-			serverOkResponse("OK");
+			okResponse("OK");
 			
 		} catch (IOException e) {
 			e.printStackTrace();
-			serverErrorResponse(500, "Server Error", e.getMessage());
+			errorResponse(500, "Server Error", e.getMessage());
 		}
 	}
 	
@@ -160,7 +162,7 @@ public class HttpResponse {
 		return contentType.substring(index + "boundary=".length()).trim();
 	}
 	
-	public void serverOkResponse(String message) {
+	public void okResponse(String message) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("HTTP/1.1 200 OK \r\n")
 			.append("Connection: close \r\n")
@@ -177,7 +179,7 @@ public class HttpResponse {
 	}
 	
 	
-	public void serverErrorResponse(int statusCode, String statusMessage, String errMessage) {
+	public void errorResponse(int statusCode, String statusMessage, String errMessage) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("HTTP/1.1 " + statusCode + " " + statusMessage + "\r\n")
 			.append("Connection: close \r\n")

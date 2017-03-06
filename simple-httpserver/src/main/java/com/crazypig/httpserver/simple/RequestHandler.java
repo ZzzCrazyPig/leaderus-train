@@ -4,6 +4,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
 
+/**
+ * Http Request Handler
+ * @author CrazyPig
+ * @since 2017-03-02
+ *
+ */
 public class RequestHandler implements Runnable {
 	
 	private Socket socket;
@@ -33,7 +39,7 @@ public class RequestHandler implements Runnable {
 		} catch (IOException e) {
 			e.printStackTrace();
 			if(response != null) {
-				response.serverErrorResponse(500, "Server Error", e.getMessage());
+				response.errorResponse(500, "Server Error", e.getMessage());
 			}
 		}
 		

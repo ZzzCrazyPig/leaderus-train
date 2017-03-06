@@ -8,6 +8,11 @@ import java.nio.charset.Charset;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * @author CrazyPig
+ * @since 2017-03-02
+ *
+ */
 public class HttpRequest {
 	
 	private static final String DEFAULT_CHARSET = "UTF-8";
@@ -15,9 +20,12 @@ public class HttpRequest {
 	private HttpMethod method;
 	private String uri;
 	private String httpVersion;
+	/** store request header **/
 	private Map<String, String> headers;
+	/** store request parameter **/
 	private Map<String, String> params;
 	
+	/** point to socket inputstream **/
 	private final InputStream in;
 	
 	private boolean endParseHeader;
@@ -28,6 +36,10 @@ public class HttpRequest {
 		params = new LinkedHashMap<String, String>();
 	}
 	
+	/**
+	 * parse http request request line and request header
+	 * @throws IOException
+	 */
 	public void parseRequestLineAndHeaders() throws IOException {
 		LineNumberReader reader = new LineNumberReader(new InputStreamReader(in, Charset.forName(DEFAULT_CHARSET)));
 		try {
@@ -60,6 +72,7 @@ public class HttpRequest {
 					headers.put(parts[0].trim(), parts[1].trim());
 				}
 			}
+			System.out.println("Parse one HTTP request :");
 			System.out.println(sb.toString());
 		} catch(IOException e) {
 			e.printStackTrace();
@@ -103,6 +116,10 @@ public class HttpRequest {
 		}
 	}
 	
+	/**
+	 * parse request parameter
+	 * @param paramLine
+	 */
 	private void parseRequestParams(String paramLine) {
 		String[] kvParts = paramLine.split("&");
 		for(String kvPart : kvParts) {

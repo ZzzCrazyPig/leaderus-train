@@ -8,6 +8,12 @@ import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * 
+ * @author CrazyPig
+ * @since 2017-03-02
+ *
+ */
 public class SimpleHttpServer {
 
 	private static final String DEFAULT_BIND_IP = "127.0.0.1";
@@ -48,7 +54,7 @@ public class SimpleHttpServer {
 		
 	}
 	
-	// one request one thread
+	// use JDK thread pool to handle http request
 	private void dispatch(Socket socket) throws IOException {
 		executor.execute(new RequestHandler(socket));
 	}
