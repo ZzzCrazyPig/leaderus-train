@@ -32,7 +32,18 @@ public class RequestHandler implements Runnable {
 				if(request.isMultiPart()) {
 					response.processFileUpload();
 				} else {
-					response.returnStaticResource();
+					request.parseRequestBody();
+					String uri = request.getUri();
+					if(uri != null) {
+						if(uri.trim().endsWith(".bsh")) {
+							response.processMspFile();
+						} else {
+							response.returnStaticResource();
+						}
+					} else {
+						response.errorResponse(404, "File Not Found", "can' not find resouce : " + request.getUri());
+					}
+					
 				}
 			}
 			socket.close();

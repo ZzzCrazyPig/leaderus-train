@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.crazypig.httpserver.utils.ByteUtil;
+import bsh.Interpreter;
 
 /**
  * 
@@ -34,10 +35,6 @@ public class HttpResponse {
 	
 	public void returnStaticResource() {
 		String uri = request.getUri();
-		if(uri == null) {
-			errorResponse(404, "File Not Found", "can' not find resouce : " + request.getUri());
-			return ;
-		}
 		System.out.println("request static resource : " + uri);
 		File resFile = new File(SimpleHttpServer.WEB_ROOT, uri);
 		if(resFile.exists() && resFile.isFile()) {
@@ -65,6 +62,28 @@ public class HttpResponse {
 			}
 		} else {
 			errorResponse(404, "File Not Found", "can' not find resouce : " + request.getUri());
+		}
+	}
+	
+	public void processMspFile() {
+		String uri = request.getUri();
+		System.out.println("request dynamic resource : " + uri);
+		File resFile = new File(SimpleHttpServer.WEB_ROOT, uri);
+		try {
+			if(resFile.exists() && resFile.isFile()) {
+				Interpreter itper = new Interpreter();
+				// set request parameter
+				for(String param : request.getParams().keySet()) {
+					itper.set(param, request.getParams().get(param));
+				}
+				// invoke script
+				Object result = itper.source(resFile.getAbsolutePath());
+				okResponse(result == null ? "OK" : result.toString());
+			} else {
+				errorResponse(404, "File Not Found", "can' not find resouce : " + request.getUri());
+			}
+		} catch(Exception e) {
+			errorResponse(500, "Server Error", e.getMessage());
 		}
 	}
 	

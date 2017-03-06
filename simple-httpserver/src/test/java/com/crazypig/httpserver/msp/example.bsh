@@ -1,0 +1,5 @@
+String hello(String user) {
+	return "Hello " + user;
+}
+
+hello(user);
