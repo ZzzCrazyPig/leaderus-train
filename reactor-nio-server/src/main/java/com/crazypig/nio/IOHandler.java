@@ -3,6 +3,7 @@ package com.crazypig.nio;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -28,6 +29,7 @@ public class IOHandler implements Runnable {
 	
 	public IOHandler(Selector selector, SocketChannel socketChannel, ByteBufferPool bufferPool) throws IOException {
 		socketChannel.configureBlocking(false);
+		socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
 		this.socketChannel = socketChannel;
 		this.bufferPool = bufferPool;
 		selectionKey = socketChannel.register(selector, 0);
@@ -112,18 +114,21 @@ public class IOHandler implements Runnable {
 			writeBuffer.put("\r\nTelent>".getBytes());
 		} else if(readedLine.startsWith("download")) {
 			File file = new File(System.getProperty("user.dir") + "/download.txt");
-			raf = new RandomAccessFile(file, "rw"); 
 			if(!file.exists()) {
 				System.out.println("file : " + file.getAbsolutePath() + " dosen't exists, create it with size of 100M and fill it");
 				// 模拟生成100M的文件, 填充数据
 				long fileSize = 100 * 1024 * 1024;
+				raf = new RandomAccessFile(file, "rw"); 
+				fileChannel = raf.getChannel();
 				MappedByteBuffer out = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, fileSize);
 				for(long i = 0; i < fileSize - 1; i++) {
 					out.put((byte)'x');
 				}
 				out.put((byte)'z');
+			} else {
+				raf = new RandomAccessFile(file, "rw"); 
+				fileChannel = raf.getChannel();
 			}
-			fileChannel = raf.getChannel();
 			doDownloadData();
 			return ;
 		} else {
